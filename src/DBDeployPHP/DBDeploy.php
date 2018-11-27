@@ -170,7 +170,7 @@ class DBDeploy
 
     private function getRevision($basefile)
     {
-        if (preg_match('((^[0-9]+)_(.*)$)', $basefile, $matches)) {
+        if (preg_match('((^[0-9]+)\ -\ (.*)$)', $basefile, $matches)) {
             return $matches[1];
         } else {
             throw new \RuntimeException(sprintf("No revision found in file '%s'.", $basefile));
