@@ -20,7 +20,7 @@ class MigrateCommand extends Command
             ->setDescription('Migrate a given database to the latest version.')
             ->addArgument('schema-dir', InputArgument::REQUIRED)
             ->addOption('dsn', 'd', InputOption::VALUE_REQUIRED)
-        ;
+            ->addOption('sql', null, InputOption::VALUE_NONE, 'Show the SQL queries being executed');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -45,19 +45,21 @@ class MigrateCommand extends Command
             throw new RuntimeException("Missing environment variable DATABASE_URL in format mysql://user:password@host/database");
         }
 
-        $connection = DriverManager::getConnection(array('url' => $_SERVER['DATABASE_URL']));
-        $migrator = new DBDeploy($connection, $directory);
+        $showSql = $input->getOption('sql');
+
+        $connection = DriverManager::getConnection(['url' => $_SERVER['DATABASE_URL']]);
+        $migrator   = new DBDeploy($connection, $directory);
 
         $output->writeln(sprintf("Reading change scripts from directory %s... \n", $directory));
 
         $status = $migrator->getCurrentStatus();
 
         $appliedString = $status->getAppliedMigrations() ? implode(', ', array_keys($status->getAppliedMigrations())) : '(none)';
-        $applyString = $status->getApplyMigrations() ? implode(', ', array_keys($status->getApplyMigrations())) : '(none)';
+        $applyString   = $status->getApplyMigrations() ? implode(', ', array_keys($status->getApplyMigrations())) : '(none)';
 
         $output->writeln(sprintf("Changes currently applied to database:\n  %s\n", $appliedString));
         $output->writeln(sprintf("To be applied:\n  %s", $applyString));
 
-        $migrator->apply($status);
+        $migrator->apply($status, $showSql, $output);
     }
 }

@@ -21,9 +21,9 @@ class MigrationStatus
 
     public function __construct(array $all, array $applied, array $apply)
     {
-        $this->all = $all;
+        $this->all     = $all;
         $this->applied = $applied;
-        $this->apply = $apply;
+        $this->apply   = $apply;
     }
 
     public function getAllMigrations()

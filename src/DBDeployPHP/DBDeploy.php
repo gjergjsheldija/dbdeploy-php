@@ -14,6 +14,7 @@
 namespace DBDeployPHP;
 
 use Doctrine\DBAL\Connection;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Clone of DBDeploy for PHP and Doctrine DBAL.
@@ -42,7 +43,7 @@ class DBDeploy
             throw new \RuntimeException(sprintf('SchemaDirectory "%s" variable is not a valid directory.', $schemaDirectory));
         }
 
-        $this->connection = $connection;
+        $this->connection      = $connection;
         $this->schemaDirectory = $schemaDirectory;
     }
 
@@ -54,24 +55,24 @@ class DBDeploy
     public function getCurrentStatus()
     {
         $schemaManager = $this->connection->getSchemaManager();
-        $tables = $schemaManager->listTableNames();
+        $tables        = $schemaManager->listTableNames();
 
         if (!in_array('changelog', $tables)) {
             $table = new \Doctrine\DBAL\Schema\Table('changelog');
             $table->addColumn('change_number', 'integer');
-            $table->addColumn('complete_dt', 'datetime', array(
+            $table->addColumn('complete_dt', 'datetime', [
                 'columnDefinition' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            ));
-            $table->addColumn('applied_by', 'string', array('length' => 100));
-            $table->addcolumn('description', 'string', array('length' => 500));
-            $table->setPrimaryKey(array('change_number'));
+            ]);
+            $table->addColumn('applied_by', 'string', ['length' => 100]);
+            $table->addcolumn('description', 'string', ['length' => 500]);
+            $table->setPrimaryKey(['change_number']);
 
             $schemaManager->createTable($table);
         }
 
-        $allMigrations = $this->getAllMigrations($this->schemaDirectory);
+        $allMigrations     = $this->getAllMigrations($this->schemaDirectory);
         $appliedMigrations = $this->getAppliedMigrations();
-        $applyMigrations = array();
+        $applyMigrations   = [];
 
         foreach ($allMigrations as $revision => $data) {
             if (!isset($appliedMigrations[$revision])) {
@@ -99,30 +100,35 @@ class DBDeploy
      * Apply a migration status with unapplied changes to the database.
      *
      * @param MigrationStatus $status
+     * @param boolean         $showSql
+     * @param OutputInterface $output
      */
-    public function apply(MigrationStatus $status)
+    public function apply(MigrationStatus $status, bool $showSql, OutputInterface $output)
     {
         foreach ($status->getApplyMigrations() as $revision => $data) {
+            if ($showSql === true) {
+                $output->writeln($data['sql']);
+            }
             $this->connection->exec($data['sql']);
             $this->connection->insert(
                 'changelog',
-                array(
+                [
                     'change_number' => $data['change_number'],
-                    'description' => $data['description'],
-                    'applied_by' => $data['applied_by']
-                )
+                    'description'   => $data['description'],
+                    'applied_by'    => $data['applied_by'],
+                ]
             );
         }
     }
 
     private function getAllMigrations($path)
     {
-        $files = glob($path . '/*.sql');
-        $migrations = array();
+        $files      = glob($path . '/*.sql');
+        $migrations = [];
 
         foreach ($files as $file) {
             $basefile = basename($file);
-            $sql = file_get_contents($file);
+            $sql      = file_get_contents($file);
 
             $revision = $this->getRevision($basefile);
 
@@ -134,13 +140,13 @@ class DBDeploy
                 throw new \RuntimeException('No support for DBDeploy "--//@UNDO" feature.');
             }
 
-            $migrations[$revision] = array(
+            $migrations[$revision] = [
                 'change_number' => $revision,
-                'sql' => $sql,
-                'file' => $file,
-                'description' => $basefile,
-                'applied_by' => $this->connection->getUsername(),
-            );
+                'sql'           => $sql,
+                'file'          => $file,
+                'description'   => $basefile,
+                'applied_by'    => $this->connection->getUsername(),
+            ];
         }
 
         ksort($migrations, SORT_NATURAL);
@@ -150,9 +156,9 @@ class DBDeploy
 
     private function getAppliedMigrations()
     {
-        $appliedMigrations = array();
+        $appliedMigrations = [];
 
-        $sql = 'SELECT * FROM changelog';
+        $sql  = 'SELECT * FROM changelog';
         $stmt = $this->connection->executeQuery($sql);
 
         while ($row = $stmt->fetch()) {
