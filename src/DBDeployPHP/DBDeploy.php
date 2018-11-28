@@ -105,6 +105,7 @@ class DBDeploy
      */
     public function apply(MigrationStatus $status, bool $showSql, OutputInterface $output)
     {
+        $this->connection->beginTransaction();
         foreach ($status->getApplyMigrations() as $revision => $data) {
             if ($showSql === true) {
                 $output->writeln($data['sql']);
@@ -119,6 +120,7 @@ class DBDeploy
                 ]
             );
         }
+        $this->connection->commit();
     }
 
     private function getAllMigrations($path)
