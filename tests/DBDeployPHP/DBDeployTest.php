@@ -5,7 +5,7 @@ namespace DBDeployPHP;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\ConnectionException;
 
-class DBDeployTest extends \PHPUnit_Framework_TestCase
+class DBDeployTest extends \PHPUnit\Framework\TestCase
 {
     static private $databaseName = 'dbdeploy_tests';
 
@@ -52,24 +52,26 @@ class DBDeployTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     *
+     * @expectedException RuntimeException
+     * @expectedExceptionMessage SchemaDirectory
      */
     public function it_requires_schema_manager()
     {
         $connection = DriverManager::getConnection(array('url' => 'sqlite://memory'));
-
-        $this->setExpectedException('RuntimeException', 'SchemaDirectory ');
 
         new DBDeploy($connection, __DIR__ . '/doesnotexist');
     }
 
     /**
      * @test
+     *
+     * @expectedException RuntimeException
+     * @expectedExceptionMessage Duplicate revision number '1' is not allowed.
      */
     public function it_disallows_duplicate_revisions()
     {
         $connection = $this->createConnection();
-
-        $this->setExpectedException('RuntimeException', "Duplicate revision number '1' is not allowed.");
 
         $deploy = new DBDeploy($connection, __DIR__ . '/../schema3');
         $deploy->migrate();
@@ -77,12 +79,13 @@ class DBDeployTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     *
+     * @expectedException RuntimeException
+     * @expectedExceptionMessage No support for DBDeploy "--//@UNDO" feature.
      */
     public function it_disallows_undo_dbdeploy_files()
     {
         $connection = $this->createConnection();
-
-        $this->setExpectedException('RuntimeException', 'No support for DBDeploy "--//@UNDO" feature.');
 
         $deploy = new DBDeploy($connection, __DIR__ . '/../schema4');
         $deploy->migrate();
